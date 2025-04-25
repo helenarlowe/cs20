@@ -4,16 +4,20 @@
   "description": "node app ",
   "main": "hello_app.js",
   "scripts": {
-  "start": "node hello_app.js"
-},
+    "start": "node hello_app.js"
+  },
   "repository": {
-  "type": "git",
-  "url": ""
-},
+    "type": "git",
+    "url": ""
+  },
   "author": "",
   "license": "ISC",
   "bugs": {
-  "url": ""
-},
-  "homepage": ""
+    "url": ""
+  },
+  "homepage": "",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "mongodb": "^6.16.0"
+  }
 }

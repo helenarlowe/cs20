@@ -1,19 +1,19 @@
-var http = require('http');
-var url = require('url');
+const http = require('http');
+const url = require('url');
 const MongoClient = require('mongodb').MongoClient;
 
 var port = process.env.PORT || 3000;
-const mongoURI = "mongodb+srv://helenalowe:QL7kXoJNpWcNUfoP@cluster0.esoruhi.mongodb.net/?retryWrites=true&w=majority";
+// const port = 8080; //local
 
-const client = new MongoClient(mongoURI);
+const Mongourl = "mongodb+srv://helenalowe:QL7kXoJNpWcNUfoP@cluster0.esoruhi.mongodb.net/?retryWrites=true&w=majority";
 
 console.log("App starting");
 
 http.createServer(function (req, res) {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+
     const urlObj = url.parse(req.url, true);
     const path = urlObj.pathname;
-
-    res.writeHead(200, { 'Content-Type': 'text/html' });
 
     if (path === "/") {
         // View 1: Home form
@@ -28,64 +28,57 @@ http.createServer(function (req, res) {
         res.write("</form>");
         res.end();
 
-    } else if (urlObj.pathname === "/process") {
-        // get the form data
-        const query = urlObj.query.query;
-        const type = urlObj.query.type;
-
-        if (!query || !type) {
-            res.write("<h2>Error: Missing form data.</h2>");
+    } else if (path === "/process") {
+        handleProcessRequest(req, res, urlObj.query).catch(err => {
+            console.error("Unexpected error:", err);
             res.end();
-            return;
-        }
-
-        MongoClient.connect(mongoURI, function (err, db) {
-            if (err) {
-                console.log("Connection error: " + err);
-                res.write("<h2>Database connection failed.</h2>");
-                res.end();
-                return;
-            }
-
-            const dbo = db.db("Stock");
-            const coll = dbo.collection("PublicCompanies");
-
-            var searchFilter;
-            // determine whether searching by company name or ticker symbol
-            if (type === "ticker") {
-                searchFilter = { stockTicker: query.toUpperCase() };
-            } else {
-                searchFilter = { companyName: { $regex: query, $options: "i" } };
-            }
-            // find corresponding data in the database that matches the search
-            coll.find(searchFilter).toArray(function (err, items) {
-                if (err) {
-                    console.log("Query error: " + err);
-                    res.write("<h2>Error fetching data.</h2>");
-                    res.end();
-                } else {
-                    // display name, stock ticker, and stock price for all companies that match the search in the console
-                    for (var i = 0; i < items.length; i++) {
-                        console.log("Company: " + items[i].companyName +
-                                    ", Ticker: " + items[i].stockTicker +
-                                    ", Price: $" + items[i].stockPrice);
-                    }
-
-                    // display results on webpage for extra credit
-                    if (items.length === 0) {
-                        res.write("<h2>No matching companies found.</h2>");
-                    } else {
-                        res.write("<h2>Matching Companies:</h2><ul>");
-                        for (var i = 0; i < items.length; i++) {
-                            res.write("<li><strong>" + items[i].companyName + "</strong> (" +
-                                items[i].stockTicker + ") - $" + items[i].stockPrice + "</li>");
-                        }
-                        res.write("</ul>");
-                    }
-                    res.end();
-                }
-                db.close();
-            });
         });
     }
-});
+}).listen(port);
+
+async function handleProcessRequest(req, res, queryParams) { // used w3schools mongodb node.js async function docs
+    // get the form data
+    const query = queryParams.query;
+    const type = queryParams.type;
+
+    if (!query || !type) {
+        //if data not all filled out
+        res.end();
+        return;
+    }
+
+    const client = new MongoClient(Mongourl);
+    await client.connect();
+    const db = client.db("Stock");
+    const collection = db.collection("PublicCompanies");
+
+    let searchFilter;
+    // determine whether searching by company name or ticker symbol
+    if (type === "ticker") {
+        searchFilter = { stockTicker: query.toUpperCase() };
+    } else {
+        searchFilter = { companyName: query};
+    }
+
+    // find corresponding data in the database that matches the search
+    const items = await collection.find(searchFilter).toArray();
+
+    if (items.length === 0) {
+        res.write("<h2>No matching companies found.</h2>");
+    } else {
+        res.write("<h2>Matching Companies:</h2><ul>");
+        for (let item of items) {
+            // display name, stock ticker, and stock price for all companies that match the search in the console
+            console.log("Company: " + item.companyName + ", Ticker: " + item.stockTicker + ", Price: $" + item.stockPrice);
+            
+            // display results on webpage
+            res.write("<li><strong>" + item.companyName + "</strong> (" +
+                item.stockTicker + ") - $" + item.stockPrice + "</li>");
+        }
+        res.write("</ul>");
+    }
+
+    res.end();
+    await client.close(); 
+    console.log("Connection closed");
+}
