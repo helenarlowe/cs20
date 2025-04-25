@@ -5,7 +5,7 @@ const MongoClient = require('mongodb').MongoClient;
 var port = process.env.PORT || 3000;
 // const port = 8080; //local
 
-const Mongourl = "mongodb+srv://helenalowe:QL7kXoJNpWcNUfoP@cluster0.esoruhi.mongodb.net/?retryWrites=true&w=majority";
+const Mongourl = "mongodb+srv://helenalowe:QL7kXoJNpWcNUfoP@cluster0.esoruhi.mongodb.net/?retryWrites=true&w=majority&tls=true";
 
 console.log("App starting");
 
